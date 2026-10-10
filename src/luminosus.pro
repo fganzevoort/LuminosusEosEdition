@@ -483,6 +483,21 @@ win64:LIBS += -luser32
 #include CoreMIDI framework on Mac for RtMidi
 macx:LIBS += -framework CoreMIDI -framework CoreAudio -framework CoreFoundation
 
+# macOS: audio input permissions (TCC) and "System Audio" capture via Core Audio process taps
+macx {
+    # Info.plist with NSMicrophoneUsageDescription / NSAudioCaptureUsageDescription.
+    # Without these keys modern macOS blocks every audio input (incl. external sound cards).
+    QMAKE_INFO_PLIST = $$PWD/macos/Info.plist
+    QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.15
+
+    HEADERS += macos/MacAudioPermissions.h
+    OBJECTIVE_SOURCES += macos/MacAudioPermissions.mm
+    LIBS += -framework Foundation -framework AVFoundation
+
+    # Entitlements are applied when signing (see macos/build_macos.sh)
+    OTHER_FILES += macos/luminosus.entitlements macos/build_macos.sh
+}
+
 # Build with RtMidi for Midi support on Windows, Linux and Mac, but not on mobile:
 !mobile_platform {
     DEFINES += RT_MIDI_AVAILABLE

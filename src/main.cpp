@@ -40,6 +40,10 @@
 #include <QFontDatabase>
 #include <QCommandLineParser>
 
+#ifdef Q_OS_MACOS
+#include "macos/MacAudioPermissions.h"
+#endif
+
 
 // amount and complexity of graphical effects (i.e. blur and shadows):
 enum TGraphicalEffectsLevel { MIN_EFFECTS = 1, MID_EFFECTS = 2, MAX_EFFECTS = 3 };
@@ -122,6 +126,23 @@ int main(int argc, char* argv[]) {
     QString templateFile = parser.positionalArguments().size() >= 1 ? parser.positionalArguments().at(0) : "";
     bool forceImport = parser.isSet("force");
 
+#ifdef Q_OS_MACOS
+    // Modern macOS (10.14+) requires explicit user permission before an app may read
+    // from any audio input device (built-in mic, USB / Thunderbolt sound cards, ...).
+    // Ask for it now, before the AudioEngine enumerates and opens the inputs.
+    macEnsureMicrophoneAccess();
+
+    // macOS 14.2+: add a "System Audio (all apps)" input that captures what other
+    // applications (QLab, Music, ...) are playing, via a Core Audio process tap.
+    // It must exist before the AudioEngine is created so that Qt lists it.
+    {
+        QString tapError;
+        if (!macCreateSystemAudioDevice(&tapError)) {
+            qInfo() << "System Audio input not available:" << tapError;
+        }
+    }
+#endif
+
     // prepare QML engine:
     qmlRegisterSingletonType(QUrl("qrc:/qml/DefaultStyle.qml"), "CustomStyle", 1, 0, "Style");
     qmlRegisterType<BezierCurve>("CustomGeometry", 1, 0, "BezierCurve");
@@ -149,5 +170,9 @@ int main(int argc, char* argv[]) {
 	QObject::connect(&app, SIGNAL(aboutToQuit()), &controller, SLOT(onExit()));
     QObject::connect(&engine, SIGNAL(quit()), &app, SLOT(quit())); // to make Qt.quit() to work
 
-    return app.exec();
+    const int exitCode = app.exec();
+#ifdef Q_OS_MACOS
+    macDestroySystemAudioDevice();
+#endif
+    return exitCode;
 }

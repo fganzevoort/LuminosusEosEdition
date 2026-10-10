@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>Luminosus</string>
+	<key>CFBundleName</key>
+	<string>Luminosus</string>
+	<key>CFBundleExecutable</key>
+	<string>luminosus</string>
+	<key>CFBundleIconFile</key>
+	<string>app_icon_icns.icns</string>
+	<key>CFBundleIdentifier</key>
+	<string>org.luminosus.LuminosusEosEdition</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.3.2</string>
+	<key>CFBundleVersion</key>
+	<string>1.3.2</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>10.15</string>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSSupportsAutomaticGraphicsSwitching</key>
+	<true/>
+
+	<!-- Required since macOS 10.14: without this key macOS refuses (or kills the app on)
+	     any access to an audio input device, including external sound cards. -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Luminosus analyses audio from your sound card or microphone to drive lighting (level, spectrum and beat detection).</string>
+
+	<!-- Required since macOS 14.2 for Core Audio process taps ("System Audio" input),
+	     used to analyse audio played by other apps such as QLab or Music. -->
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>Luminosus analyses audio played by other apps (e.g. QLab or Music) to drive lighting.</string>
+</dict>
+</plist>

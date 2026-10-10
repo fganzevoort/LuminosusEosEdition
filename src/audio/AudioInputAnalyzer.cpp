@@ -1,5 +1,7 @@
 #include "AudioInputAnalyzer.h"
 
+#include <cstring>
+
 #include "core/MainController.h"
 
 #include <QDebug>
@@ -356,7 +358,18 @@ void AudioInputAnalyzer::audioDataReady() {
     const char *ptr = data.constData();
     ptr += m_audioFormat.sampleSize() * m_channelIndex / 8;
 
-    if (m_audioFormat.sampleSize() <= 16) {  // 16 bit
+    if (m_audioFormat.sampleType() == QAudioFormat::Float && m_audioFormat.sampleSize() == 32) {  // 32 bit float
+        // (can be returned by nearestFormat() for some CoreAudio devices, i.e. aggregate devices)
+
+        // iterate over raw input data:
+        for (int i=0; i<numSamples; ++i) {
+            float sample;
+            memcpy(&sample, ptr, sizeof(float));
+            m_circBuffer.push_back(sample);
+            ptr += bytesPerSample;
+        }
+
+    } else if (m_audioFormat.sampleSize() <= 16) {  // 16 bit
 
         // iterate over raw input data:
         for (int i=0; i<numSamples; ++i) {
