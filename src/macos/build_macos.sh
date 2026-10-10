@@ -114,9 +114,23 @@ fi
 codesign --verify --deep --strict --verbose=1 "$APP"
 
 # --- package -----------------------------------------------------------------------
+# Drag-to-install DMG: "Luminosus.app" next to a shortcut to /Applications
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist")"
-DMG="$BUILD_DIR/luminosus-${VERSION}-macos-$(uname -m).dmg"
-hdiutil create -volname "Luminosus" -srcfolder "$APP" -ov -format UDZO "$DMG" >/dev/null
+DMG="$BUILD_DIR/Luminosus-${VERSION}-macos-$(uname -m).dmg"
+STAGE="$BUILD_DIR/dmg-staging"
+rm -rf "$STAGE" && mkdir -p "$STAGE"
+ditto "$APP" "$STAGE/Luminosus.app"          # ditto keeps symlinks and the signature intact
+ln -s /Applications "$STAGE/Applications"
+rm -f "$DMG"
+hdiutil create -volname "Luminosus ${VERSION}" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
+rm -rf "$STAGE"
+
+# Optional: install straight into /Applications (./build_macos.sh --install)
+if [ "${1:-}" = "--install" ]; then
+    rm -rf "/Applications/Luminosus.app"
+    ditto "$APP" "/Applications/Luminosus.app"
+    echo "Installed: /Applications/Luminosus.app"
+fi
 
 echo
 echo "Done:"
