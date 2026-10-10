@@ -488,11 +488,16 @@ macx {
     # Info.plist with NSMicrophoneUsageDescription / NSAudioCaptureUsageDescription.
     # Without these keys modern macOS blocks every audio input (incl. external sound cards).
     QMAKE_INFO_PLIST = $$PWD/macos/Info.plist
-    QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.15
+    # Current Xcode / Command Line Tools libc++ no longer supports older targets
+    # ("The selected platform is no longer supported by libc++" warning).
+    QMAKE_MACOSX_DEPLOYMENT_TARGET = 13.0
+
+    # Use CoreMIDI in RtMidi (without this RtMidi compiles its dummy backend = no MIDI)
+    DEFINES += __MACOSX_CORE__
 
     HEADERS += macos/MacAudioPermissions.h
     OBJECTIVE_SOURCES += macos/MacAudioPermissions.mm
-    LIBS += -framework Foundation -framework AVFoundation
+    LIBS += -framework Foundation -framework AVFoundation -framework CoreServices
 
     # Entitlements are applied when signing (see macos/build_macos.sh)
     OTHER_FILES += macos/luminosus.entitlements macos/build_macos.sh

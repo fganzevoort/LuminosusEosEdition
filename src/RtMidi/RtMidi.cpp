@@ -235,7 +235,7 @@ class MidiOutWinMM: public MidiOutApi
 
 #if defined(__RTMIDI_DUMMY__)
 
-class MidiI nDummy: public MidiInApi
+class MidiInDummy: public MidiInApi
 {
  public:
  MidiInDummy( const std::string &/*clientName*/, unsigned int queueSizeLimit ) : MidiInApi( queueSizeLimit ) { errorString_ = "MidiInDummy: This class provides no functionality."; error( RtMidiError::WARNING, errorString_ ); }
