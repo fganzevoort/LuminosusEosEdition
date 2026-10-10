@@ -1,4 +1,5 @@
 #include "ArtNetSender.h"
+#include "other/NetworkUtils.h"
 
 #include <QtNetwork>
 #include <algorithm>
@@ -42,7 +43,14 @@ void ArtNetSubnetSender::sendUniverseBroadcast(int universe, const QVector<uint8
 
     // send prepared packet with filled in data via UDP socket:
     const char* packet = reinterpret_cast<const char*>(universePacket.constData());
-    m_udpSocket.writeDatagram(packet, 18+512, QHostAddress::Broadcast, ARTNET_PORT);
+    // the list of interfaces is refreshed every few seconds, not for every DMX frame:
+    if (m_broadcastAddresses.isEmpty() || !m_broadcastRefresh.isValid() || m_broadcastRefresh.elapsed() > 5000) {
+        m_broadcastAddresses = allIPv4BroadcastAddresses();
+        m_broadcastRefresh.restart();
+    }
+    for (const QHostAddress& broadcast: m_broadcastAddresses) {
+        m_udpSocket.writeDatagram(packet, 18+512, broadcast, ARTNET_PORT);
+    }
 }
 
 void ArtNetSubnetSender::sendUniverseUnicast(int universe, const QVector<uint8_t>& data, const QVector<QHostAddress>& addresses) {

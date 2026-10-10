@@ -1,4 +1,5 @@
 #include "ArtNetDiscoveryManager.h"
+#include "other/NetworkUtils.h"
 
 #include <QNetworkDatagram>
 #include <QNetworkInterface>
@@ -90,13 +91,17 @@ void ArtNetDiscoveryManager::processPackets() {
 }
 
 void ArtNetDiscoveryManager::sendArtPoll() {
-    m_udpSocket.writeDatagram(m_artPollPacket, QHostAddress::Broadcast, ARTNET_PORT);
+    for (const QHostAddress& broadcast: allIPv4BroadcastAddresses()) {
+        m_udpSocket.writeDatagram(m_artPollPacket, broadcast, ARTNET_PORT);
+    }
     // each node has to answer to this poll, this node too:
     sendArtPollReply();
 }
 
 void ArtNetDiscoveryManager::sendArtPollReply() {
-    m_udpSocket.writeDatagram(m_artPollReplyPacket, QHostAddress::Broadcast, ARTNET_PORT);
+    for (const QHostAddress& broadcast: allIPv4BroadcastAddresses()) {
+        m_udpSocket.writeDatagram(m_artPollReplyPacket, broadcast, ARTNET_PORT);
+    }
 }
 
 QVariantList ArtNetDiscoveryManager::getDiscoveredNodes() const {
@@ -161,7 +166,9 @@ void ArtNetDiscoveryManager::parseArtPollReply(const QByteArray& content) {
 
 void ArtNetDiscoveryManager::sendIpCheckPacket() {
     m_ipCheckPacket = (QString("LuminosusIpCheck") + QString::number(qrand() % 99999)).toLatin1();
-    m_udpSocket.writeDatagram(m_ipCheckPacket, QHostAddress::Broadcast, ARTNET_PORT);
+    for (const QHostAddress& broadcast: allIPv4BroadcastAddresses()) {
+        m_udpSocket.writeDatagram(m_ipCheckPacket, broadcast, ARTNET_PORT);
+    }
 }
 
 void ArtNetDiscoveryManager::preparePackets() {

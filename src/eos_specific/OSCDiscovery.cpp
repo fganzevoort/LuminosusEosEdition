@@ -1,4 +1,5 @@
 #include "OSCDiscovery.h"
+#include "../other/NetworkUtils.h"
 #include "../osc/OSCParser.h"
 
 #include <QtCore/QElapsedTimer>
@@ -100,7 +101,11 @@ bool OSCDiscoveryClient::SendRequest()
 	if( buf )
 	{
 		QUdpSocket requestSocket;
-        qint64 bytesSent = requestSocket.writeDatagram(buf, qint64(bufBytes), QHostAddress::Broadcast, m_DiscoverServerPort);
+        // send to every network interface (see NetworkUtils.h), not only the default one:
+        qint64 bytesSent = -1;
+        for (const QHostAddress& broadcast: allIPv4BroadcastAddresses()) {
+            bytesSent = qMax(bytesSent, requestSocket.writeDatagram(buf, qint64(bufBytes), broadcast, m_DiscoverServerPort));
+        }
 		if(bytesSent >= 0)
 			success = true;
 		else

@@ -38,6 +38,12 @@
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Luminosus analyses audio from your sound card or microphone to drive lighting (level, spectrum and beat detection).</string>
 
+	<!-- macOS 15+: shown in the Local Network permission prompt. Without Local Network
+	     permission macOS blocks OSC to consoles (Eos, Hog, X32/XAir), Art-Net, sACN,
+	     OSC discovery and handoff. -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Luminosus talks to lighting consoles, audio consoles and other devices on your network using OSC, Art-Net and sACN.</string>
+
 	<!-- Required since macOS 14.2 for Core Audio process taps ("System Audio" input),
 	     used to analyse audio played by other apps such as QLab or Music. -->
 	<key>NSAudioCaptureUsageDescription</key>

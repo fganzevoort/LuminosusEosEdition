@@ -8,6 +8,11 @@
 #import <AVFoundation/AVFoundation.h>
 #import <CoreAudio/CoreAudio.h>
 #include <unistd.h>
+#include <ifaddrs.h>
+#include <net/if.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <random>
 #include <vector>
 
 // Core Audio process taps are only declared in the macOS 14.2+ SDK.
@@ -238,4 +243,36 @@ void macDestroySystemAudioDevice() {
         }
     }
 #endif
+}
+
+
+// ------------------------------------------------------------------------------------
+// Local Network permission (macOS 15+)
+// ------------------------------------------------------------------------------------
+
+void macTriggerLocalNetworkAlert() {
+    struct ifaddrs* list = nullptr;
+    if (getifaddrs(&list) != 0 || !list) return;
+
+    std::random_device rd;
+    std::mt19937 rng(rd());
+    std::uniform_int_distribution<int> byte(0, 255);
+
+    for (struct ifaddrs* i = list; i; i = i->ifa_next) {
+        if (!(i->ifa_flags & IFF_BROADCAST) || !(i->ifa_flags & IFF_UP)) continue;
+        if (!i->ifa_addr || i->ifa_addr->sa_family != AF_INET6) continue;
+        sockaddr_in6 addr;
+        memcpy(&addr, i->ifa_addr, sizeof(addr));
+        // only link-local addresses (fe80::/10)
+        if (!(addr.sin6_addr.s6_addr[0] == 0xfe && (addr.sin6_addr.s6_addr[1] & 0xc0) == 0x80)) continue;
+        addr.sin6_port = htons(9);  // discard service, nothing is actually sent
+        for (int n = 0; n < 2; ++n) {
+            for (int b = 8; b < 16; ++b) addr.sin6_addr.s6_addr[b] = uint8_t(byte(rng));
+            int sock = socket(AF_INET6, SOCK_DGRAM, 0);
+            if (sock < 0) continue;
+            (void)connect(sock, reinterpret_cast<sockaddr*>(&addr), sizeof(addr));
+            close(sock);
+        }
+    }
+    freeifaddrs(list);
 }

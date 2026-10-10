@@ -93,7 +93,7 @@ while [ "$changed" -eq 1 ]; do
 done
 
 # --- sanity check: the privacy keys must be in the final bundle --------------------
-for key in NSMicrophoneUsageDescription NSAudioCaptureUsageDescription; do
+for key in NSMicrophoneUsageDescription NSAudioCaptureUsageDescription NSLocalNetworkUsageDescription; do
     if ! /usr/libexec/PlistBuddy -c "Print :$key" "$APP/Contents/Info.plist" >/dev/null 2>&1; then
         echo "ERROR: $key missing from $APP/Contents/Info.plist" >&2
         exit 1
@@ -102,10 +102,15 @@ done
 
 # --- sign ---------------------------------------------------------------------------
 xattr -cr "$APP"
-if [ -n "${SIGN_IDENTITY:-}" ]; then
+if [[ "${SIGN_IDENTITY:-}" == "Developer ID"* ]]; then
     # Developer ID + hardened runtime (needed for notarization / distribution)
     codesign --force --deep --timestamp --options runtime \
         --entitlements "$ENTITLEMENTS" --sign "$SIGN_IDENTITY" "$APP"
+elif [ -n "${SIGN_IDENTITY:-}" ]; then
+    # e.g. a free "Apple Development: you@example.com (XXXXXXXXXX)" certificate from Xcode.
+    # An Apple-issued identity lets macOS remember Local Network / microphone
+    # permissions reliably across rebuilds (Apple TN3179).
+    codesign --force --deep --entitlements "$ENTITLEMENTS" --sign "$SIGN_IDENTITY" "$APP"
 else
     # Ad-hoc signature: fine for use on your own Macs.
     # (No hardened runtime here: it would block loading the ad-hoc signed Qt plugins.)

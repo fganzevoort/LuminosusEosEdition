@@ -22,6 +22,12 @@ enum class MacMicPermission { Granted, Denied, Restricted, Unknown };
 /// prompt. Returns immediately if permission was already decided.
 MacMicPermission macEnsureMicrophoneAccess();
 
+/// macOS 15+: performs a harmless local network operation (connecting a UDP socket to
+/// a link-local IPv6 address, no traffic is sent) so the Local Network permission prompt
+/// appears right at startup instead of silently dropping the first OSC / Art-Net packets.
+/// Technique from Apple TN3179.
+void macTriggerLocalNetworkAlert();
+
 /// Returns true if the "System Audio" device was created.
 bool macCreateSystemAudioDevice(QString* errorMessage = nullptr);
 

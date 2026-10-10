@@ -132,6 +132,9 @@ int main(int argc, char* argv[]) {
     // Ask for it now, before the AudioEngine enumerates and opens the inputs.
     macEnsureMicrophoneAccess();
 
+    // macOS 15+: ask for Local Network permission now (OSC, Art-Net, sACN, X32, ...)
+    macTriggerLocalNetworkAlert();
+
     // macOS 14.2+: add a "System Audio (all apps)" input that captures what other
     // applications (QLab, Music, ...) are playing, via a Core Audio process tap.
     // It must exist before the AudioEngine is created so that Qt lists it.

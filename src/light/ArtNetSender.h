@@ -2,6 +2,7 @@
 #define ARTNETSENDER_H
 
 #include <cstdint>
+#include <QElapsedTimer>
 #include <QUdpSocket>
 #include <QVector>
 #include <QObject>
@@ -26,6 +27,8 @@ protected:
     uint8_t m_sequenceNumber;
     QVector<QVector<uint8_t>> m_preparedPackets;
     QUdpSocket m_udpSocket;
+    QList<QHostAddress> m_broadcastAddresses;  // directed broadcast address of each interface
+    QElapsedTimer m_broadcastRefresh;
 };
 
 #endif // ARTNETSENDER_H
