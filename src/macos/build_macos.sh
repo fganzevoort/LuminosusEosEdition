@@ -57,6 +57,41 @@ make -j"$(sysctl -n hw.ncpu)"
 # --- bundle Qt frameworks and QML plugins into the .app ---------------------------
 "$MACDEPLOYQT" "$APP" -qmldir="$SRC_DIR/qml" -always-overwrite
 
+# --- copy libraries macdeployqt misses ----------------------------------------------
+# macdeployqt doesn't follow "@rpath/..." dependencies of Homebrew libraries, e.g.
+# libfreetype -> libbrotlidec -> @rpath/libbrotlicommon. A missing one stops the cocoa
+# platform plugin from loading ("could not find or load the Qt platform plugin").
+HB_PREFIX="$(cd "$QT_DIR/../.." && pwd)"   # /opt/homebrew or /usr/local
+FW="$APP/Contents/Frameworks"
+changed=1
+while [ "$changed" -eq 1 ]; do
+    changed=0
+    while IFS= read -r -d '' bin; do
+        file "$bin" | grep -q "Mach-O" || continue
+        # dependencies that are only resolvable inside Homebrew
+        for dep in $(otool -L "$bin" | tail -n +2 | awk '{print $1}' | grep -E "^(@rpath/|$HB_PREFIX/)" | grep -v "\.framework/"); do
+            name="$(basename "$dep")"
+            if [ ! -e "$FW/$name" ]; then
+                src="$HB_PREFIX/lib/$name"
+                [ -e "$src" ] || src="$(find "$HB_PREFIX/opt" -maxdepth 3 -name "$name" 2>/dev/null | head -1)"
+                if [ -z "$src" ] || [ ! -e "$src" ]; then
+                    echo "WARNING: $name (needed by $(basename "$bin")) not found in Homebrew" >&2
+                    continue
+                fi
+                echo "Bundling missing library: $name"
+                cp -L "$src" "$FW/$name"
+                chmod u+w "$FW/$name"
+                install_name_tool -id "@rpath/$name" "$FW/$name" 2>/dev/null
+                changed=1
+            fi
+            # point absolute Homebrew paths at the bundled copy
+            if [[ "$dep" == "$HB_PREFIX"/* ]]; then
+                install_name_tool -change "$dep" "@executable_path/../Frameworks/$name" "$bin" 2>/dev/null
+            fi
+        done
+    done < <(find "$APP/Contents" -type f \( -name "*.dylib" -o -path "*/MacOS/*" -o -path "*.framework/Versions/*" \) -print0)
+done
+
 # --- sanity check: the privacy keys must be in the final bundle --------------------
 for key in NSMicrophoneUsageDescription NSAudioCaptureUsageDescription; do
     if ! /usr/libexec/PlistBuddy -c "Print :$key" "$APP/Contents/Info.plist" >/dev/null 2>&1; then
