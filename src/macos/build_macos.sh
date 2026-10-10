@@ -21,13 +21,27 @@ APP="$BUILD_DIR/luminosus.app"
 ENTITLEMENTS="$SCRIPT_DIR/luminosus.entitlements"
 
 # --- locate Qt 5 ---------------------------------------------------------------
+# (checks the standard Homebrew locations directly, because 'bash script.sh' started
+#  from zsh doesn't always have /opt/homebrew/bin in its PATH)
 if [ -z "${QT_DIR:-}" ]; then
-    if command -v brew >/dev/null 2>&1 && brew --prefix qt@5 >/dev/null 2>&1; then
-        QT_DIR="$(brew --prefix qt@5)"
-    else
-        echo "Qt 5 not found. Install it with 'brew install qt@5' or set QT_DIR=/path/to/Qt/5.15.x/clang_64" >&2
-        exit 1
-    fi
+    for candidate in /opt/homebrew/opt/qt@5 /usr/local/opt/qt@5; do
+        if [ -x "$candidate/bin/qmake" ]; then QT_DIR="$candidate"; break; fi
+    done
+fi
+if [ -z "${QT_DIR:-}" ] && command -v brew >/dev/null 2>&1; then
+    QT_DIR="$(brew --prefix qt@5 2>/dev/null || true)"
+fi
+if [ -z "${QT_DIR:-}" ] || [ ! -x "$QT_DIR/bin/qmake" ]; then
+    echo "Qt 5 not found. Install it with 'brew install qt@5' or set QT_DIR=/path/to/qt@5" >&2
+    exit 1
+fi
+
+# --- check that this is the complete source tree, not only the changed files ---------
+if [ ! -f "$SRC_DIR/core/MainController.cpp" ] || [ ! -d "$SRC_DIR/qml" ]; then
+    echo "The full Luminosus source is missing next to $SCRIPT_DIR." >&2
+    echo "Download/clone https://github.com/xhpohanka/LuminosusEosEdition and unzip the" >&2
+    echo "changed files over it (so src/macos sits inside that repo's src folder)." >&2
+    exit 1
 fi
 QMAKE="$QT_DIR/bin/qmake"
 MACDEPLOYQT="$QT_DIR/bin/macdeployqt"
