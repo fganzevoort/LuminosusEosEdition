@@ -71,6 +71,8 @@ while [ "$changed" -eq 1 ]; do
         # dependencies that are only resolvable inside Homebrew
         for dep in $(otool -L "$bin" | tail -n +2 | awk '{print $1}' | grep -E "^(@rpath/|$HB_PREFIX/)" | grep -v "\.framework/"); do
             name="$(basename "$dep")"
+            # otool -L also lists a library's own install name: skip it
+            [ "$name" = "$(basename "$bin")" ] && continue
             if [ ! -e "$FW/$name" ]; then
                 src="$HB_PREFIX/lib/$name"
                 [ -e "$src" ] || src="$(find "$HB_PREFIX/opt" -maxdepth 3 -name "$name" 2>/dev/null | head -1)"
