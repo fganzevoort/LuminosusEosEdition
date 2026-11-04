@@ -366,6 +366,8 @@ protected:
     QAudioDeviceInfo m_deviceInfo;  //!< audio device info
     QString m_deviceName;  //!< name of input device
     int m_channelIndex;  //!< 0 for left channel, 1 for right channel
+    int m_readChannel = 0;  //!< channel to read from the recorded frames (0 for mono sources)
+    QPointer<QIODevice> m_macInput;  //!< macOS: native single-channel input (MacChannelInput)
 
     int m_analyzedTillIndex;  //!< the end index of the last analyzed FFT window in circular buffer
     Qt3DCore::QCircularBuffer<float> m_circBuffer;  //!< ring buffer to store incoming audio samples

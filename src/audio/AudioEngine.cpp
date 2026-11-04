@@ -6,6 +6,10 @@
 
 #include <QDebug>
 
+#ifdef Q_OS_MACOS
+#include "macos/MacChannelInput.h"
+#endif
+
 
 AudioEngine::AudioEngine(MainController* controller)
     : QObject(controller)
@@ -124,6 +128,12 @@ void AudioEngine::initInputs() {
 
         // check if this device has multiple channels:
         int preferredChannelCount = device.preferredFormat().channelCount();
+
+#ifdef Q_OS_MACOS
+        // Qt only reports the channels of the first stream; count all input channels:
+        const int macChannels = MacChannelInput::inputChannelCount(deviceName);
+        if (macChannels > 0) preferredChannelCount = macChannels;
+#endif
 
         // force stereo if available on windows
         // because preferredChannelCount is otherwise always 1

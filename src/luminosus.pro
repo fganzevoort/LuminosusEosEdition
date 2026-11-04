@@ -495,9 +495,9 @@ macx {
     # Use CoreMIDI in RtMidi (without this RtMidi compiles its dummy backend = no MIDI)
     DEFINES += __MACOSX_CORE__
 
-    HEADERS += macos/MacAudioPermissions.h
-    OBJECTIVE_SOURCES += macos/MacAudioPermissions.mm
-    LIBS += -framework Foundation -framework AVFoundation -framework CoreServices
+    HEADERS += macos/MacAudioPermissions.h macos/MacChannelInput.h
+    OBJECTIVE_SOURCES += macos/MacAudioPermissions.mm macos/MacChannelInput.mm
+    LIBS += -framework Foundation -framework AVFoundation -framework CoreServices -framework AudioToolbox
 
     # Entitlements are applied when signing (see macos/build_macos.sh)
     OTHER_FILES += macos/luminosus.entitlements macos/build_macos.sh

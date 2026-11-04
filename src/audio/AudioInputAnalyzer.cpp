@@ -2,6 +2,10 @@
 
 #include <cstring>
 
+#ifdef Q_OS_MACOS
+#include "macos/MacChannelInput.h"
+#endif
+
 #include "core/MainController.h"
 
 #include <QDebug>
@@ -133,6 +137,29 @@ void AudioInputAnalyzer::addReference(void* ref) {
         m_circBuffer.fill(0.0, m_circBuffer.capacity());
         m_spectralFluxHistory.fill(0.0, m_spectralFluxHistory.capacity());
         m_spectralColorHistory.fill(0.0, m_spectralColorHistory.capacity());
+#ifdef Q_OS_MACOS
+        // macOS: read the device directly (no 16 channel limit of Qt's CoreAudio backend,
+        // see MacChannelInput.h). Falls back to QAudioInput if that is not possible.
+        if (MacChannelInput* macInput = MacChannelInput::create(m_deviceInfo.deviceName(), m_channelIndex,
+                                                                AUDIO_SAMPLING_RATE, this)) {
+            m_macInput = macInput;
+            QAudioFormat format;
+            format.setSampleRate(AUDIO_SAMPLING_RATE);
+            format.setChannelCount(1);
+            format.setSampleSize(16);
+            format.setCodec("audio/pcm");
+            format.setByteOrder(QAudioFormat::LittleEndian);
+            format.setSampleType(QAudioFormat::SignedInt);
+            m_audioFormat = format;
+            m_readChannel = 0;
+            m_audioRecordDevice = macInput;
+            connect(m_audioRecordDevice, SIGNAL(readyRead()), this, SLOT(audioDataReady()));
+            connect(m_controller->engine(), SIGNAL(updateBlocks(double)), this, SLOT(updateSpectrum()));
+            m_referenceList.insert(ref);
+            return;
+        }
+#endif
+        m_readChannel = m_channelIndex;
         createAudioInputForMusic();
         if (!m_audioInput) return;
         if (m_audioInput->volume() < 1.0) m_audioInput->setVolume(1.0);
@@ -156,6 +183,11 @@ void AudioInputAnalyzer::removeReference(void* ref) {
         if (m_audioRecordDevice) {
             disconnect(m_audioRecordDevice, SIGNAL(readyRead()), this, SLOT(audioDataReady()));
             disconnect(m_controller->engine(), SIGNAL(updateBlocks(double)), this, SLOT(updateSpectrum()));
+        }
+        if (m_macInput) {
+            m_audioRecordDevice = nullptr;
+            delete m_macInput.data();  // stops the capture
+            m_macInput = nullptr;
         }
         if (m_audioInput) {
             m_audioInput->stop();
@@ -260,7 +292,9 @@ void AudioInputAnalyzer::createAudioInputForMusic() {
     // Set up the desired audio input format:
     QAudioFormat format;
     format.setSampleRate(AUDIO_SAMPLING_RATE);
-    format.setChannelCount(m_deviceInfo.preferredFormat().channelCount());
+    // Qt 5's CoreAudio backend supports max. 16 channels; asking for more makes
+    // nearestFormat() fall back to 1 channel (= every analyser gets channel 1).
+    format.setChannelCount(qMin(16, qMax(m_readChannel + 1, m_deviceInfo.preferredFormat().channelCount())));
     format.setSampleSize(16);
     format.setCodec("audio/pcm");
     format.setByteOrder(QAudioFormat::LittleEndian);
@@ -356,7 +390,8 @@ void AudioInputAnalyzer::audioDataReady() {
     const int bytesPerSample = m_audioFormat.bytesPerFrame();
     const int numSamples = data.size() / bytesPerSample;
     const char *ptr = data.constData();
-    ptr += m_audioFormat.sampleSize() * m_channelIndex / 8;
+    if (m_readChannel >= m_audioFormat.channelCount()) return;  // channel not available
+    ptr += m_audioFormat.sampleSize() * m_readChannel / 8;
 
     if (m_audioFormat.sampleType() == QAudioFormat::Float && m_audioFormat.sampleSize() == 32) {  // 32 bit float
         // (can be returned by nearestFormat() for some CoreAudio devices, i.e. aggregate devices)
