@@ -129,7 +129,13 @@ rm -rf "$STAGE" && mkdir -p "$STAGE"
 ditto "$APP" "$STAGE/Luminosus.app"          # ditto keeps symlinks and the signature intact
 ln -s /Applications "$STAGE/Applications"
 rm -f "$DMG"
-hdiutil create -volname "Luminosus ${VERSION}" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
+if diskutil image create from --help >/dev/null 2>&1; then
+    # macOS 27+: hdiutil create is deprecated, diskutil image is its replacement
+    diskutil image create from --format UDZO --volumeName "Luminosus ${VERSION}" "$STAGE" "$DMG" >/dev/null
+else
+    hdiutil create -volname "Luminosus ${VERSION}" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
+fi
+[ -f "$DMG" ] || { echo "ERROR: creating $DMG failed" >&2; exit 1; }
 rm -rf "$STAGE"
 
 # Optional: install straight into /Applications (./build_macos.sh --install)
