@@ -110,10 +110,13 @@ void EosCueList::onIncomingEosMessage(const EosOSCMessage& msg) {
         } else if (msg.path().size() <= 5) {
             // this message contains detailed information about a cue
             EosCueNumber cueNumber = EosCueNumber(msg.pathPart(2), msg.pathPart(3), msg.pathPart(4));
-            if (m_cues.contains(cueNumber)) {
-                if (!m_cues[cueNumber]) return;
-                m_cues[cueNumber]->update(msg);
+            QPointer<EosCue> existing = m_cues.value(cueNumber);
+            if (existing) {
+                existing->update(msg);
             } else if (!msg.arguments().isEmpty()) {
+                // (also replaces a stale entry of a deleted cue, so a cue that was deleted
+                //  and recorded again on the console shows up again)
+                m_cues.remove(cueNumber);
                 EosCue* newCue = new EosCue(m_controller, msg);
                 connect(newCue, SIGNAL(deleted(EosCueNumber)), this, SLOT(deleteCue(EosCueNumber)));
                 m_cues[cueNumber] = newCue;
@@ -154,8 +157,8 @@ void EosCueList::deleteCue(const EosCueNumber& cueNumber) {
 
 QStringList EosCueList::getCueNumbers() const {
     QStringList numbers;
-    for (const EosCueNumber& cueNumber: m_cues.keys()) {
-        numbers.append(cueNumber.toString());
+    for (auto it = m_cues.constBegin(); it != m_cues.constEnd(); ++it) {
+        if (it.value()) numbers.append(it.key().toString());  // skip deleted cues
     }
     return numbers;
 }
@@ -164,7 +167,7 @@ QList<QObject*> EosCueList::getCues() const {
     QList<QObject*> cues;
     // as QMap is already sorted -> this result is sorted too
     for (const QPointer<EosCue>& cue: m_cues.values()) {
-        cues.append(cue);
+        if (cue) cues.append(cue);  // skip deleted cues
     }
     return cues;
 }

@@ -45,9 +45,19 @@ void EosCueListManager::onIncomingEosMessage(const EosOSCMessage& msg) {
         } else {
             // this message contains detailed information about a cuelist
             int cueListNumber = msg.pathPart(2).toInt();
-            if (m_cueLists.contains(cueListNumber)) {
-                m_cueLists[cueListNumber]->update(msg);
+            QPointer<EosCueList> existing = m_cueLists.value(cueListNumber);
+            if (existing) {
+                existing->update(msg);
             } else {
+                // Remove a stale entry: the QPointer is null if the object deleted itself
+                // (e.g. in its constructor, before the deleted() signal was connected).
+                // Calling update() on it crashed (EXC_BAD_ACCESS in EosCueList::update).
+                m_cueLists.remove(cueListNumber);
+                if (msg.arguments().isEmpty()) {
+                    // no arguments: this cue list doesn't exist (anymore) on the console
+                    emit cueListsChanged();
+                    return;
+                }
                 EosCueList* newCueList = new EosCueList(m_controller, msg);
                 connect(newCueList, SIGNAL(deleted(int)), this, SLOT(deleteCueList(int)));
                 m_cueLists[cueListNumber] = newCueList;
@@ -72,11 +82,16 @@ void EosCueListManager::deleteCueList(int cueList) {
 }
 
 QList<int> EosCueListManager::getCueListNumbers() const {
-    return m_cueLists.keys();
+    QList<int> numbers;
+    for (auto it = m_cueLists.constBegin(); it != m_cueLists.constEnd(); ++it) {
+        if (it.value()) numbers.append(it.key());  // skip deleted objects
+    }
+    return numbers;
 }
 
 EosCueList* EosCueListManager::getCueList(int cueListNumber) const {
-    EosCueList* cueList = m_cueLists.value(cueListNumber, &m_dummyCueList);
+    EosCueList* cueList = m_cueLists.value(cueListNumber).data();
+    if (!cueList) cueList = &m_dummyCueList;  // unknown or deleted cue list
     QQmlEngine::setObjectOwnership(cueList, QQmlEngine::CppOwnership);
     return cueList;
 }
