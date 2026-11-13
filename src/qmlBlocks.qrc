@@ -69,6 +69,7 @@
         <file>qml/Blocks/Logic/ColorizeBlock.qml</file>
         <file>qml/Blocks/Logic/SequencerBlock.qml</file>
         <file>qml/Blocks/Logic/MultiplyBlock.qml</file>
+        <file>qml/Blocks/Logic/GainBlock.qml</file>
         <file>qml/Blocks/Logic/RecorderBlock.qml</file>
         <file>qml/Blocks/X32/X32ChannelBlock.qml</file>
         <file>qml/Blocks/Logic/RecorderSlaveBlock.qml</file>

@@ -67,6 +67,7 @@
 #include "block_implementations/Logic/OffsetBlock.h"
 #include "block_implementations/Logic/SequencerBlock.h"
 #include "block_implementations/Logic/MultiplyBlock.h"
+#include "block_implementations/Logic/GainBlock.h"
 #include "block_implementations/Logic/RecorderBlock.h"
 #include "block_implementations/Logic/RecorderSlaveBlock.h"
 #include "block_implementations/Logic/ProjectorShutterBlock.h"
@@ -121,6 +122,7 @@ void BlockList::addAllBlocks() {
     addBlock(ThresholdBlock::info());
     addBlock(SmoothBlock::info());
     addBlock(MultiplyBlock::info());
+    addBlock(GainBlock::info());
     addBlock(DelayBlock::info());
     addBlock(DecayBlock::info());
     addBlock(HoldMaxBlock::info());

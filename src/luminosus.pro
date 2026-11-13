@@ -85,6 +85,7 @@ SOURCES += main.cpp \
     block_implementations/Logic/LinearValueBlock.cpp \
     block_implementations/Logic/MovingPatternBlock.cpp \
     block_implementations/Logic/MultiplyBlock.cpp \
+    block_implementations/Logic/GainBlock.cpp \
     block_implementations/Logic/OffsetBlock.cpp \
     block_implementations/Logic/OneDimensionalPattern.cpp \
     block_implementations/Logic/ProjectorShutterBlock.cpp \
@@ -261,6 +262,7 @@ HEADERS += \
     block_implementations/Logic/LinearValueBlock.h \
     block_implementations/Logic/MovingPatternBlock.h \
     block_implementations/Logic/MultiplyBlock.h \
+    block_implementations/Logic/GainBlock.h \
     block_implementations/Logic/OffsetBlock.h \
     block_implementations/Logic/OneDimensionalPattern.h \
     block_implementations/Logic/ProjectorShutterBlock.h \
