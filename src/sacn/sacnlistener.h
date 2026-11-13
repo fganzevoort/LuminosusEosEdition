@@ -23,6 +23,8 @@
 #include <QTimer>
 #include <QElapsedTimer>
 #include <QPoint>
+#include <QMutex>
+#include <QVector>
 #include "streamingacn.h"
 #include "sacnsocket.h"
 
@@ -79,7 +81,20 @@ public:
      * @return an sACNMergerdSourceList, a list of merged address structures, allowing you to see
      * the result of the merge algorithm together with all the sub-sources, by address
      */
-    sACNMergedSourceList mergedLevels() { return m_merged_levels;}
+    sACNMergedSourceList mergedLevels() { return m_merged_levels;}  // listener thread only!
+
+    /**
+     * @brief mergedLevel returns the merged level (0-255, -1 if no source) of one address.
+     * Thread-safe: use this from other threads (e.g. blocks in the main thread). mergedLevels()
+     * copies the internal list while the listener thread may be modifying it, which crashed
+     * (EXC_BAD_ACCESS in SAcnInBlock::onLevelsChanged).
+     * @param address 0-based address (0...511)
+     */
+    int mergedLevel(int address) const {
+        if (address < 0 || address >= 512) return -1;
+        QMutexLocker locker(&m_levelSnapshotMutex);
+        return m_levelSnapshot[address];
+    }
 
     std::size_t sourceCount() { return m_sources.size();}
     sACNSource *source(std::size_t index) { return m_sources[index];}
@@ -119,6 +134,9 @@ private:
     std::vector<sACNSource *> m_sources;
     int m_last_levels[512];
     sACNMergedSourceList m_merged_levels;
+    // copy of the merged levels for other threads, see mergedLevel():
+    QVector<int> m_levelSnapshot;
+    mutable QMutex m_levelSnapshotMutex;
     int m_universe;
     // The per-source hold last look time
     int m_ssHLL;

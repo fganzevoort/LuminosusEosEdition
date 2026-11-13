@@ -16,9 +16,11 @@ SAcnInBlock::SAcnInBlock(MainController* controller, QString uid)
 }
 
 void SAcnInBlock::onLevelsChanged() {
-    int level = m_listener->mergedLevels()[m_channel - 1].level;
+    if (m_listener.isNull()) return;
+    // mergedLevel() is thread-safe (the listener runs in its own thread):
+    int level = m_listener->mergedLevel(m_channel - 1);
     if (m_16bit && m_channel < 512) {
-        int fine = m_listener->mergedLevels()[m_channel].level;
+        int fine = qMax(0, m_listener->mergedLevel(m_channel));
         setValue(limit(0.0, (level + fine / 255.0) / 255.0, 1.0));
     } else {
         setValue(limit(0.0, level / 255.0, 1.0));

@@ -45,6 +45,7 @@ sACNListener::sACNListener(int universe, QObject *parent) : QObject(parent),
     m_merged_levels.reserve(512);
     for(int i=0; i<512; i++)
         m_merged_levels << sACNMergedAddress();
+    m_levelSnapshot.fill(-1, 512);
 }
 
 sACNListener::~sACNListener()
@@ -661,6 +662,14 @@ void sACNListener::performMerge()
             m_merged_levels[address].otherSources.remove(m_merged_levels[address].winningSource);
     }
 
+
+    // Update the thread-safe copy for readers in other threads:
+    {
+        QMutexLocker locker(&m_levelSnapshotMutex);
+        for (int i = 0; i < 512; ++i) {
+            m_levelSnapshot[i] = m_merged_levels[i].level;
+        }
+    }
 
     // Tell people..
     emit levelsChanged();

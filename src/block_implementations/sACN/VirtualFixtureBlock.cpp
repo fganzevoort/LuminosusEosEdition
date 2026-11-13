@@ -24,13 +24,15 @@ NodeBase* VirtualFixtureBlock::getChannelNode(int index) {
 }
 
 void VirtualFixtureBlock::onLevelsChanged() {
-    int level = m_listener->mergedLevels()[m_channel - 1].level;
+    if (m_listener.isNull()) return;
+    // mergedLevel() is thread-safe (the listener runs in its own thread):
+    int level = m_listener->mergedLevel(m_channel - 1);
     setValue(limit(0.0, level / 255.0, 1.0));
 
     for (int i=1; i<m_numChannels; ++i) {
         int ch = m_channel + i;
         if (ch > 512 || (i-1) >= m_channelNodes.size()) return;
-        level = m_listener->mergedLevels()[ch - 1].level;
+        level = m_listener->mergedLevel(ch - 1);
         m_channelNodes[i-1]->setValue(limit(0.0, level / 255.0, 1.0));
     }
 }
